@@ -28,3 +28,4 @@ Models/
 # 临时文件
 *.log
 *.tmp
+Release/

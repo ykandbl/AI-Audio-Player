@@ -200,13 +200,15 @@ struct NavigationHeader: View {
     @ObservedObject var audioPlayer: AudioPlayerService
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
             HStack {
                 if playlistManager.currentPlaylist != nil {
                     Button(action: { playlistManager.navigateUp() }) {
                         Image(systemName: "chevron.left")
+                            .font(.system(size: 14, weight: .medium))
                     }
-                    .buttonStyle(.borderless)
+                    .buttonStyle(.plain)
+                    .foregroundColor(.accentColor)
                 }
                 
                 Text(playlistManager.currentPlaylist?.name ?? "播放列表")
@@ -215,19 +217,23 @@ struct NavigationHeader: View {
                 
                 Spacer()
                 
-                // 搜索按钮 - 打开独立窗口
+                // 搜索按钮
                 Button(action: { 
                     SearchWindowController.shared.show(playlistManager: playlistManager, audioPlayer: audioPlayer)
                 }) {
                     Image(systemName: "magnifyingglass")
+                        .font(.system(size: 13))
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
                 .help("搜索")
                 
                 Button(action: openFolder) {
-                    Image(systemName: "folder.badge.plus")
+                    Image(systemName: "plus")
+                        .font(.system(size: 14, weight: .medium))
                 }
-                .buttonStyle(.borderless)
+                .buttonStyle(.plain)
+                .foregroundColor(.secondary)
                 .help("添加文件夹")
             }
             
@@ -258,8 +264,8 @@ struct NavigationHeader: View {
                 }
             }
         }
-        .padding()
-        .background(Color(NSColor.controlBackgroundColor))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
     
     private func openFolder() {

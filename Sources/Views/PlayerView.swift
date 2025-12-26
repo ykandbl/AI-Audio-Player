@@ -1,16 +1,82 @@
 import SwiftUI
 
+// MARK: - 进度条滑块
+struct ProgressSlider: View {
+    @EnvironmentObject var audioPlayer: AudioPlayerService
+    @State private var isDragging = false
+    @State private var dragValue: Double = 0
+    
+    var body: some View {
+        VStack(spacing: 6) {
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.secondary.opacity(0.2))
+                        .frame(height: 4)
+                    
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.accentColor)
+                        .frame(width: progressWidth(in: geometry.size.width), height: 4)
+                    
+                    Circle()
+                        .fill(Color.accentColor)
+                        .frame(width: 12, height: 12)
+                        .offset(x: progressWidth(in: geometry.size.width) - 6)
+                        .opacity(isDragging ? 1 : 0)
+                }
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { value in
+                            isDragging = true
+                            let progress = max(0, min(1, value.location.x / geometry.size.width))
+                            dragValue = progress * audioPlayer.duration
+                        }
+                        .onEnded { _ in
+                            isDragging = false
+                            audioPlayer.seek(to: dragValue)
+                        }
+                )
+            }
+            .frame(height: 12)
+            
+            HStack {
+                Text(formatTime(isDragging ? dragValue : audioPlayer.currentTime))
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .monospacedDigit()
+                
+                Spacer()
+                
+                Text(formatTime(audioPlayer.duration))
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .monospacedDigit()
+            }
+        }
+    }
+    
+    private func progressWidth(in totalWidth: CGFloat) -> CGFloat {
+        guard audioPlayer.duration > 0 else { return 0 }
+        let currentValue = isDragging ? dragValue : audioPlayer.currentTime
+        let progress = currentValue / audioPlayer.duration
+        return totalWidth * CGFloat(progress)
+    }
+    
+    private func formatTime(_ time: TimeInterval) -> String {
+        let minutes = Int(time) / 60
+        let seconds = Int(time) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
+}
+
 struct PlayerView: View {
     @EnvironmentObject var audioPlayer: AudioPlayerService
     
     var body: some View {
         VStack(spacing: 0) {
-            // 当前播放信息
             CurrentTrackHeader()
-            
             Divider()
-            
-            // 播放控制
             PlaybackControls()
         }
         .background(Color(NSColor.windowBackgroundColor))
@@ -32,7 +98,6 @@ struct CurrentTrackHeader: View {
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
             
-            // 显示准备字幕状态
             if audioPlayer.isPreparingSubtitles {
                 HStack(spacing: 6) {
                     ProgressView()
@@ -55,101 +120,43 @@ struct PlaybackControls: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            // 进度条
             ProgressSlider()
             
-            // 控制按钮
             HStack(spacing: 24) {
                 Button(action: { audioPlayer.playPrevious() }) {
                     Image(systemName: "backward.fill")
                         .font(.title2)
                 }
                 .buttonStyle(.borderless)
-                .disabled(audioPlayer.currentTrack == nil)
                 
                 Button(action: { audioPlayer.skipBackward() }) {
                     Image(systemName: "gobackward.15")
                         .font(.title2)
                 }
                 .buttonStyle(.borderless)
-                .disabled(audioPlayer.currentTrack == nil)
                 
                 Button(action: { audioPlayer.togglePlayPause() }) {
                     Image(systemName: audioPlayer.isPlaying ? "pause.circle.fill" : "play.circle.fill")
                         .font(.system(size: 48))
                 }
                 .buttonStyle(.borderless)
-                .disabled(audioPlayer.currentTrack == nil)
                 
                 Button(action: { audioPlayer.skipForward() }) {
                     Image(systemName: "goforward.15")
                         .font(.title2)
                 }
                 .buttonStyle(.borderless)
-                .disabled(audioPlayer.currentTrack == nil)
                 
                 Button(action: { audioPlayer.playNext() }) {
                     Image(systemName: "forward.fill")
                         .font(.title2)
                 }
                 .buttonStyle(.borderless)
-                .disabled(audioPlayer.currentTrack == nil)
             }
             
-            // 速度控制
             SpeedControl()
         }
         .padding()
-    }
-}
-
-struct ProgressSlider: View {
-    @EnvironmentObject var audioPlayer: AudioPlayerService
-    @State private var isDragging = false
-    @State private var dragValue: Double = 0
-    
-    var body: some View {
-        VStack(spacing: 4) {
-            Slider(
-                value: Binding(
-                    get: { isDragging ? dragValue : audioPlayer.currentTime },
-                    set: { newValue in
-                        dragValue = newValue
-                        if !isDragging {
-                            audioPlayer.seek(to: newValue)
-                        }
-                    }
-                ),
-                in: 0...max(audioPlayer.duration, 1),
-                onEditingChanged: { editing in
-                    isDragging = editing
-                    if !editing {
-                        audioPlayer.seek(to: dragValue)
-                    }
-                }
-            )
-            .disabled(audioPlayer.currentTrack == nil)
-            
-            HStack {
-                Text(formatTime(audioPlayer.currentTime))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .monospacedDigit()
-                
-                Spacer()
-                
-                Text(formatTime(audioPlayer.duration))
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .monospacedDigit()
-            }
-        }
-    }
-    
-    private func formatTime(_ time: TimeInterval) -> String {
-        let minutes = Int(time) / 60
-        let seconds = Int(time) % 60
-        return String(format: "%d:%02d", minutes, seconds)
     }
 }
 
